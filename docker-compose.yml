@@ -1,0 +1,67 @@
+version: '3'
+services:  
+  #PHP Service
+  app_1:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app
+    restart: unless-stopped
+    expose:
+      - '80'
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+  app_2:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app
+    restart: unless-stopped
+    - '80'
+    networks:
+      - app-network
+    depends_on:
+      - db  
+
+  #Nginx Service
+  webserver:
+    image: nginx:alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+    depends_on:
+      - app_1
+      - app_2
+
+  #MySQL Service
+  db:
+    image: percona/percona-server:8.0
+    container_name: db
+    restart: unless-stopped
+    expose:
+      - '3306'
+    environment:
+      MYSQL_DATABASE: app_db
+      MYSQL_ROOT_PASSWORD: app_passwd
+    volumes:
+      - dbdata:/var/lib/mysql/
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
+volumes:
+  dbdata:
+    driver: local
